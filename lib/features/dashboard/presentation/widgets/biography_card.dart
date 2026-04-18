@@ -1,0 +1,296 @@
+
+library;
+
+import 'package:flutter/material.dart';
+
+import 'package:celeb_sentiment_tracker/core/domain/models/celebrity.dart';
+import 'package:celeb_sentiment_tracker/core/theme/app_theme.dart';
+
+class BiographyCard extends StatefulWidget {
+  const BiographyCard({
+    super.key,
+    required this.biography,
+    required this.name,
+  });
+
+  final Biography biography;
+  final String name;
+
+  @override
+  State<BiographyCard> createState() => _BiographyCardState();
+}
+
+class _BiographyCardState extends State<BiographyCard>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  bool _controversiesExpanded = false;
+  late AnimationController _animController;
+  late Animation<double> _expandAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _expandAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpand() {
+    setState(() => _expanded = !_expanded);
+    if (_expanded) {
+      _animController.forward();
+    } else {
+      _animController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bio = widget.biography;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.cardGradient,
+        borderRadius: AppTheme.radiusLg,
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Gradient Header ──────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person_rounded,
+                      color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.name,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: AppTheme.radiusSm,
+                        ),
+                        child: Text(
+                          bio.profession,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Summary ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Text(
+              bio.summary,
+              style: theme.textTheme.bodyLarge,
+            ),
+          ),
+
+          // ── Background (expand/collapse) ────────────────────────
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                bio.background,
+                maxLines: _expanded ? 100 : 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: GestureDetector(
+              onTap: _toggleExpand,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      _expanded ? 'Show less' : 'Read more',
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    RotationTransition(
+                      turns: Tween(begin: 0.0, end: 0.5).animate(_expandAnim),
+                      child: const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 18, color: AppTheme.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Notable Works Chips ─────────────────────────────────
+          if (bio.notableWorks.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: Text('Notable Works',
+                  style: theme.textTheme.labelLarge),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: bio.notableWorks.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    borderRadius: AppTheme.radiusSm,
+                    border: Border.all(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    bio.notableWorks[i],
+                    style: TextStyle(
+                      color: AppTheme.primaryLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          // ── Controversies ───────────────────────────────────────
+          if (bio.controversies.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GestureDetector(
+                onTap: () => setState(
+                    () => _controversiesExpanded = !_controversiesExpanded),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withValues(alpha: 0.08),
+                    borderRadius: AppTheme.radiusSm,
+                    border: Border.all(
+                      color: AppTheme.warning.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              size: 16, color: AppTheme.warning),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Controversies (${bio.controversies.length})',
+                            style: TextStyle(
+                              color: AppTheme.warning,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            _controversiesExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppTheme.warning,
+                          ),
+                        ],
+                      ),
+                      if (_controversiesExpanded) ...[
+                        const SizedBox(height: 8),
+                        ...bio.controversies.map((c) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('• ',
+                                      style: TextStyle(
+                                          color: AppTheme.warning,
+                                          fontSize: 12)),
+                                  Expanded(
+                                    child: Text(
+                                      c,
+                                      style: const TextStyle(
+                                        color: AppTheme.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}

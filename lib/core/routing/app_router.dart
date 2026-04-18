@@ -1,0 +1,75 @@
+/// Application router using [go_router] with deep-link support.
+///
+/// Route tree:
+///   /                       → HomeScreen (search)
+///   /dashboard/:slug        → DashboardScreen (celebrity detail)
+///   /dashboard/:slug/media  → WebViewScreen (in-app browser)
+///   /error                  → Generic error screen
+///
+/// The router is provided as a Riverpod provider so it can react
+/// to auth state changes if needed in Phase 4.
+library;
+
+import 'package:go_router/go_router.dart';
+
+import '../../features/search/presentation/screens/home_screen.dart';
+import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/media_feed/presentation/screens/webview_screen.dart';
+import '../../features/dashboard/presentation/screens/error_screen.dart';
+
+/// Named route constants to avoid magic strings.
+abstract final class AppRoutes {
+  static const String home = '/';
+  static const String dashboard = '/dashboard/:slug';
+  static const String mediaWebView = '/dashboard/:slug/media';
+  static const String error = '/error';
+}
+
+/// Central router configuration.
+///
+/// Depends on no external state in Phase 1 — auth-aware redirects
+/// will be layered in Phase 4.
+final GoRouter appRouter = GoRouter(
+  initialLocation: AppRoutes.home,
+  debugLogDiagnostics: true,
+  routes: [
+    GoRoute(
+      path: '/',
+      name: 'home',
+      builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/dashboard/:slug',
+      name: 'dashboard',
+      builder: (context, state) {
+        final slug = state.pathParameters['slug']!;
+        return DashboardScreen(slug: slug);
+      },
+      routes: [
+        GoRoute(
+          path: 'media',
+          name: 'mediaWebView',
+          builder: (context, state) {
+            final url = state.uri.queryParameters['url'] ?? '';
+            final title = state.uri.queryParameters['title'] ?? 'Media';
+            return WebViewScreen(url: url, title: title);
+          },
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/error',
+      name: 'error',
+      builder: (context, state) {
+        final message = state.uri.queryParameters['message'] ??
+            'Something went wrong.';
+        final type = state.uri.queryParameters['type'] ?? 'generic';
+        return ErrorScreen(message: message, errorType: type);
+      },
+    ),
+  ],
+  errorBuilder: (context, state) => ErrorScreen(
+    message: 'Page not found: ${state.uri.path}',
+    errorType: 'notFound',
+  ),
+);
